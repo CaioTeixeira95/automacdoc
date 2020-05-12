@@ -1,11 +1,9 @@
-# ----------------
 import inspect
 import importlib
 import os
 import sys
 import platform
 import glob
-# ----------------
 
 
 def rm_docstring_from_source(source):
@@ -21,13 +19,14 @@ def rm_docstring_from_source(source):
     source = source.split('"""')
     if len(source) > 1:
         del source[1]  # remove docstring
-    source = "".join(source)
+    source = ''.join(source)
+
     # to handle intendation inside functions and classes
-    source = source.split("\n")
-    nb_indent = len(source[0]) - len(source[0].lstrip())
+    source = source.split('\n')
+    numbers_of_indent = len(source[0]) - len(source[0].lstrip())
     for i in range(len(source)):
-        source[i] = "\t" + source[i][nb_indent:]
-    source = "\n".join(source)
+        source[i] = '\t' + source[i][numbers_of_indent:]
+    source = '\n'.join(source)
     return source
 
 
@@ -56,14 +55,14 @@ def create_fun(name: str, obj, ignore_prefix_function: str):
     ):
         return None
 
-    fun = {}
-    fun["name"] = name
-    fun["obj"] = obj
-    fun["module"] = inspect.getmodule(obj).__name__
-    fun["path"] = inspect.getmodule(obj).__file__
-    fun["doc"] = inspect.getdoc(obj) or ""
-    fun["source"] = rm_docstring_from_source(inspect.getsource(obj))
-    fun["args"] = inspect.signature(obj)
+    fun = dict()
+    fun['name'] = name
+    fun['obj'] = obj
+    fun['module'] = inspect.getmodule(obj).__name__
+    fun['path'] = inspect.getmodule(obj).__file__
+    fun['doc'] = inspect.getdoc(obj) or ''
+    fun['source'] = rm_docstring_from_source(inspect.getsource(obj))
+    fun['args'] = inspect.signature(obj)
     return fun
 
 
@@ -87,19 +86,19 @@ def create_class(name: str, obj, ignore_prefix_function: str):
     >  - *functions* -- list of functions that are in the class (formatted as dict)
     >  - *methods* -- list of methods that are in the class (formatted as dict)
     """
-    clas = {}
-    clas["name"] = name
-    clas["obj"] = obj
-    clas["module"] = inspect.getmodule(obj).__name__
-    clas["path"] = inspect.getmodule(obj).__file__
-    clas["doc"] = inspect.getdoc(obj) or ""
-    clas["source"] = rm_docstring_from_source(inspect.getsource(obj))
-    clas["args"] = inspect.signature(obj)
-    clas["functions"] = [
+    clas = dict()
+    clas['name'] = name
+    clas['obj'] = obj
+    clas['module'] = inspect.getmodule(obj).__name__
+    clas['path'] = inspect.getmodule(obj).__file__
+    clas['doc'] = inspect.getdoc(obj) or ''
+    clas['source'] = rm_docstring_from_source(inspect.getsource(obj))
+    clas['args'] = inspect.signature(obj)
+    clas['functions'] = [
         create_fun(n, o, ignore_prefix_function)
         for n, o in inspect.getmembers(obj, inspect.isfunction)
     ]
-    clas["methods"] = [
+    clas['methods'] = [
         create_fun(n, o, ignore_prefix_function)
         for n, o in inspect.getmembers(obj, inspect.ismethod)
     ]
@@ -109,16 +108,19 @@ def create_class(name: str, obj, ignore_prefix_function: str):
 class_name_md = (
     "## **{0}**`#!py3 class` {{ #{0} data-toc-label={0} }}\n\n".format
 )  # name
+
 method_name_md = (
     "### *{0}*.**{1}**`#!py3 {2}` {{ #{1} data-toc-label={1} }}\n\n".format
 )  # class, name, args
+
 function_name_md = (
     "### **{0}**`#!py3 {1}` {{ #{0} data-toc-label={0} }}\n\n".format
 )  # name, args
+
 doc_md = "{}\n".format  # doc
+
 source_md = (
-    '\n\n??? info "Source Code" \n\t```py3 linenums="1 1 2" \n{}\n\t```\n'.
-    format
+    '\n\n??? info "Source Code" \n\t```py3 linenums="1 1 2" \n{}\n\t```\n'.format
 )  # source
 
 
@@ -134,9 +136,9 @@ def write_function(md_file, fun):
     if fun is None:
         return
 
-    md_file.writelines(function_name_md(fun["name"], fun["args"]))
-    md_file.writelines(doc_md(fun["doc"]))
-    md_file.writelines(source_md(fun["source"]))
+    md_file.writelines(function_name_md(fun['name'], fun['args']))
+    md_file.writelines(doc_md(fun['doc']))
+    md_file.writelines(source_md(fun['source']))
 
 
 def write_method(md_file, method, clas):
@@ -152,11 +154,9 @@ def write_method(md_file, method, clas):
     if method is None:
         return
 
-    md_file.writelines(
-        method_name_md(clas["name"], method["name"], method["args"])
-    )
-    md_file.writelines(doc_md(method["doc"]))
-    md_file.writelines(source_md(method["source"]))
+    md_file.writelines(method_name_md(clas['name'], method['name'], method['args']))
+    md_file.writelines(doc_md(method['doc']))
+    md_file.writelines(source_md(method['source']))
 
 
 def write_class(md_file, clas):
@@ -168,29 +168,27 @@ def write_class(md_file, clas):
     > **clas:** `dict` -- class information organized as a dict (see `create_clas`)
 
     """
-    md_file.writelines(class_name_md(clas["name"]))
-    md_file.writelines(doc_md(clas["doc"]))
+    md_file.writelines(class_name_md(clas['name']))
+    md_file.writelines(doc_md(clas['doc']))
     # list of methods
-    if len(clas["methods"]):
+    if len(clas['methods']):
         md_file.writelines("\n**class methods:** \n\n")
-        for m in clas["methods"]:
-            md_file.writelines(" - [`{0}`](#{0})\n".format(m["name"]))
+        for method in clas['methods']:
+            md_file.writelines(" - [`{0}`](#{0})\n".format(method['name']))
 
             # list of functions
-    if len(clas["functions"]) > 0:
+    if len(clas['functions']) > 0:
         md_file.writelines("\n**class functions & static methods:** \n\n")
-        for f in clas["functions"]:
-            md_file.writelines(" - [`{0}`](#{0})\n".format(f["name"]))
+        for func in clas['functions']:
+            md_file.writelines(" - [`{0}`](#{0})\n".format(func['name']))
 
     md_file.writelines("\n")
 
-    for m in clas["methods"]:
-        write_method(md_file, m, clas)
+    for method in clas['methods']:
+        write_method(md_file, method, clas)
 
-    for f in clas["functions"]:
-        write_method(
-            md_file, f, clas
-        )  # use write_method to get the clas prefix
+    for func in clas['functions']:
+        write_method(md_file, func, clas)  # use write_method to get the clas prefix
 
 
 def write_module(
@@ -244,9 +242,9 @@ def write_module(
 
 
 def get_toc_lines_from_file_path(mdfile_name):
-    lines = ""
-    for i, layer in enumerate(mdfile_name.split("/")):
-        if i + 1 != len(mdfile_name.split("/")):
+    lines = ''
+    for i, layer in enumerate(mdfile_name.split('/')):
+        if i + 1 != len(mdfile_name.split('/')):
             lines += "        " * (i + 1) + "- " + layer + ":\n"
         else:
             lines += "        " * (i + 1) + "- " + mdfile_name + "\n"
@@ -262,8 +260,8 @@ def write_mkdocs_yaml(path_to_yaml: str, project_name: str, toc: str):
     > **project_name:** `str` -- name of the project
     > **toc:** `str` -- the toc and the all hierarchy of the website
     """
-    yaml_file = open(path_to_yaml, "w")
-    content = """site_name: {}
+    with open(path_to_yaml, 'w') as yaml_file:
+        content = """site_name: {}
 theme:
   name: 'material'
 nav:
@@ -283,9 +281,8 @@ markdown_extensions:
     - pymdownx.emoji
     - pymdownx.inlinehilite
     - pymdownx.magiclink
-    """.format(project_name, toc)
-    yaml_file.writelines(content)
-    yaml_file.close()
+        """.format(project_name, toc)
+        yaml_file.writelines(content)
 
 
 def write_indexmd(path_to_indexmd: str, project_name: str):
@@ -296,68 +293,75 @@ def write_indexmd(path_to_indexmd: str, project_name: str):
     > **path_to_indexmd:** `str` -- path to the output YAML file
     > **project_name:** `str` -- name of the project
     """
-    indexmd_file = open(path_to_indexmd, "w")
-    content = """# Welcome to {0}
+    with open(path_to_indexmd, 'w') as indexmd_file:
+        content = """# Welcome to {0}
 This website contains the documentation for the wonderful project {0}
-""".format(project_name)
-    indexmd_file.writelines(content)
-    indexmd_file.close()
+        """.format(project_name)
+        indexmd_file.writelines(content)
 
 
-def write_doc(src: str, mainfolder: str):
-    # variables
-    project_icon = "code"  # https://material.io/tools/icons/?style=baseline
-
+def write_doc(folder: str, name: str, is_django_project: bool, django_module_settings: str = None):
     # setting the paths variable
-    project_name = mainfolder.split("/")[-1]
-    code_path = os.path.abspath(src)
-    doc_path = os.path.join(os.path.abspath(mainfolder), "docs")
-    package_name = code_path.split("/")[-1]
+    project_name = name.split('/')[-1]
+    code_path = os.path.abspath(folder)
+    doc_path = os.path.join(os.path.abspath(name), 'docs')
     root_path = os.path.dirname(code_path)
 
-    #Since windows and Linux platforms utilizes different slash in their file structure
-    system_slash_style = {"Windows": "\\", "Linux": "/"}
+    # Since windows and Linux platforms utilizes different slash in their file structure
+    system_slash_style = {
+        'Windows': '\\',
+        'Linux': '/'
+    }
 
     # load the architecture of the module
-    ign_pref_file = "__"
-    full_list_glob = glob.glob(code_path + "/**", recursive=True)
-    list_glob = [
-        p
-        for p in full_list_glob
-        if "/" + ign_pref_file not in p and os.path.isfile(p) and p[-3:] == ".py" \
-            and "__init__" not in p
+    ign_pref_file = '__'
+    file_list = glob.glob(code_path + '/**', recursive=True)
+
+    valid_files = [
+        file
+        for file in file_list
+        if f'/{ign_pref_file}' not in file
+           and os.path.isfile(file)
+           and file[-3:] == '.py'
+           and '__init__' not in file
     ]
 
+    if is_django_project:
+        try:
+            import django
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError((
+                'Seems that is not a Django project. '
+                'You can use "--django False" flag or '
+                'be sure that you have Django installed in your environment.'
+            ))
+        if django_module_settings is None:
+            raise Exception((
+                'Django WSGI/ASGI module name not specified. '
+                'Please use "--djangosettings myproject.settings" flag to specify.'
+            ))
+        os.environ.setdefault('DJANGO_MODULE_SETTINGS', django_module_settings)
+        django.setup()
+
     # write every markdown files based on the architecture
-    toc = ""
-    for mod in list_glob:
-        module_name = mod[len(root_path) + 1 : -3]\
-            .replace(system_slash_style[platform.system()], ".")
-        mdfile_path = os.path.join(
-            doc_path, mod[len(code_path) + 1:-3] + ".md"
-        )
+    table_of_contents = ''
+    for mod in valid_files:
+        module_name = mod[len(root_path) + 1: -3].replace(system_slash_style[platform.system()], '.')
+        mdfile_path = os.path.join(doc_path, mod[len(code_path) + 1:-3] + '.md')
         mdfile_name = mdfile_path[len(doc_path) + 1:]
         try:
             write_module(root_path, module_name, mdfile_path)
-            toc += get_toc_lines_from_file_path(mdfile_name)
+            table_of_contents += get_toc_lines_from_file_path(mdfile_name)
         except Exception as error:
-            print("[-]Warning ", error)
+            print('[-]Warning ', error)
 
-    if len(toc) == 0:
-        raise ValueError("All the files seems invalid")
+    if len(table_of_contents) == 0:
+        raise ValueError('All the files seems invalid')
 
-    #removed the condition because it would'nt update the yml file in case
-    #of any update in the source code
-    yml_path = os.path.join(mainfolder, 'mkdocs.yml')
-    write_mkdocs_yaml(yml_path, project_name, toc)
+    # removed the condition because it would'nt update the yml file in case
+    # of any update in the source code
+    yml_path = os.path.join(name, 'mkdocs.yml')
+    write_mkdocs_yaml(yml_path, project_name, table_of_contents)
 
     index_path = os.path.join(doc_path, 'index.md')
     write_indexmd(index_path, project_name)
-    """
-    if not os.path.isfile(yml_path):
-        write_mkdocs_yaml(yml_path, project_name, toc)
-
-    index_path = os.path.join(doc_path, 'index.md')
-    if not os.path.isfile(index_path):
-        write_indexmd(index_path, project_name)
-    """
