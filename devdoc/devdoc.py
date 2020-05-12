@@ -131,7 +131,7 @@ def write_function(md_file, fun):
     **Parameters**
     > **md_file:** `file` -- file object of the markdown file
     > **fun:** `dict` -- function information organized as a dict (see `create_fun`)
-
+DJANGO_MODULE_SETTINGS
     """
     if fun is None:
         return
@@ -195,6 +195,8 @@ def write_module(
     path_to_home: str,
     module_import: str,
     path_to_md: str,
+    is_django_project: bool,
+    django_project_name: str,
     ignore_prefix_function: str = None,
 ):
     """
@@ -204,18 +206,37 @@ def write_module(
     > **path_to_home:** `str` -- path to the root of the project (2 steps before the `__init__.py`)
     > **module_import:** `str` -- module name (ex: `my_package.my_module`)
     > **path_to_md:** `str` -- path to the output markdown file
+    > **is_django_project:** `bool` -- says if the project is a django project
+    > **django_project_name** `str` -- Django project name (django-admin startproject project_name)
     > **ignore_prefix_function:** `str` -- *None* -- precise the prefix of function or method names to ignore
 
     """
     package_path = os.path.abspath(path_to_home)
     sys.path.insert(0, package_path)
 
+    if is_django_project:
+        try:
+            import django
+        except ModuleNotFoundError:
+            raise ModuleNotFoundError((
+                'Seems that is not a Django project. '
+                'You can use "--django False" flag or '
+                'be sure that you have Django installed in your environment.'
+            ))
+        if django_project_name is None:
+            raise Exception((
+                'Django project name has not been specified. '
+                'Please use "--django-project-name myproject" flag to specify.'
+            ))
+        os.environ.setdefault('DJANGO_SETTINGS_MODULE', f'{django_project_name}.settings')
+        django.setup()
+
     try:
         module = importlib.import_module(
-            module_import, package=module_import.split(".")[0]
+            module_import, package=module_import.split('.')[0]
         )
     except ModuleNotFoundError as error:
-        raise ModuleNotFoundError(str(error) + " in " + module_import)
+        raise ModuleNotFoundError(str(error) + ' in ' + module_import)
 
     clas = [
         create_class(n, o, ignore_prefix_function)
@@ -300,7 +321,12 @@ This website contains the documentation for the wonderful project {0}
         indexmd_file.writelines(content)
 
 
-def write_doc(folder: str, name: str, is_django_project: bool, django_module_settings: str = None):
+def write_doc(
+    folder: str,
+    name: str,
+    is_django_project: bool,
+    django_project_name: str = None
+):
     # setting the paths variable
     project_name = name.split('/')[-1]
     code_path = os.path.abspath(folder)
@@ -326,23 +352,6 @@ def write_doc(folder: str, name: str, is_django_project: bool, django_module_set
            and '__init__' not in file
     ]
 
-    if is_django_project:
-        try:
-            import django
-        except ModuleNotFoundError:
-            raise ModuleNotFoundError((
-                'Seems that is not a Django project. '
-                'You can use "--django False" flag or '
-                'be sure that you have Django installed in your environment.'
-            ))
-        if django_module_settings is None:
-            raise Exception((
-                'Django WSGI/ASGI module name not specified. '
-                'Please use "--djangosettings myproject.settings" flag to specify.'
-            ))
-        os.environ.setdefault('DJANGO_MODULE_SETTINGS', django_module_settings)
-        django.setup()
-
     # write every markdown files based on the architecture
     table_of_contents = ''
     for mod in valid_files:
@@ -350,7 +359,7 @@ def write_doc(folder: str, name: str, is_django_project: bool, django_module_set
         mdfile_path = os.path.join(doc_path, mod[len(code_path) + 1:-3] + '.md')
         mdfile_name = mdfile_path[len(doc_path) + 1:]
         try:
-            write_module(root_path, module_name, mdfile_path)
+            write_module(root_path, module_name, mdfile_path, is_django_project, django_project_name)
             table_of_contents += get_toc_lines_from_file_path(mdfile_name)
         except Exception as error:
             print('[-]Warning ', error)
