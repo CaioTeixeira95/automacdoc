@@ -346,7 +346,7 @@ def write_doc(folder: str, name: str, is_django_project: bool, django_module_set
     # write every markdown files based on the architecture
     table_of_contents = ''
     for mod in valid_files:
-        module_name = mod[len(root_path) + 1: -3].replace(system_slash_style[platform.system()], '.')
+        module_name = mod[len(root_path) + 1: -3].replace(system_slash_style.get(platform.system(), '/'), '.')
         mdfile_path = os.path.join(doc_path, mod[len(code_path) + 1:-3] + '.md')
         mdfile_name = mdfile_path[len(doc_path) + 1:]
         try:
