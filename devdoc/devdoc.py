@@ -131,7 +131,6 @@ def write_function(md_file, fun):
     **Parameters**
     > **md_file:** `file` -- file object of the markdown file
     > **fun:** `dict` -- function information organized as a dict (see `create_fun`)
-DJANGO_MODULE_SETTINGS
     """
     if fun is None:
         return
