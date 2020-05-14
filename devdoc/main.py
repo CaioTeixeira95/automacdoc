@@ -26,8 +26,8 @@ parser.add_argument(
     default='True'
 )
 parser.add_argument(
-    '--djangosettings',
-    help='The Django WSGI/ASGI module name. Example: myproject.settings',
+    '--django-project-name',
+    help='The Django project name',
     type=str
 )
 parser.add_argument(
@@ -43,7 +43,7 @@ def main():
     args.django = args.django == 'True'
 
     try:
-        write_doc(args.folder, args.name, args.django, args.djangosettings)
+        write_doc(args.folder, args.name, args.django, args.django_project_name)
     except Exception as error:
         print("[-] Error ", str(error))
         return
